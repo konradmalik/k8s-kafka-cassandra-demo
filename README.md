@@ -13,6 +13,11 @@ $ make k3d-create
 $ make kafka-create
 ```
 
+To clean up after the demo/testing/dev just run:
+```bash
+$ make k3d-delete
+```
+
 ## Access Kafka
 
 Enable port forwarding to `kafka-0-external` service in order to send/consume messages from local machine:

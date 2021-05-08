@@ -1,0 +1,270 @@
+# global:
+#   imageRegistry: myRegistryName
+#   imagePullSecrets:
+#     - myRegistryKeySecretName
+#   storageClass: myStorageClass
+
+## Bitnami Kafka image version
+## ref: https://hub.docker.com/r/bitnami/kafka/tags/
+##
+image:
+  repository: bitnami/kafka
+  tag: 2.8.0-debian-10-r0
+
+## Kafka Configuration
+## Specify content for server.properties
+## NOTE: This will override any KAFKA_CFG_ environment variables (including those set by the chart)
+## The server.properties is auto-generated based on other parameters when this parameter is not specified
+##
+## Example:
+## config: |-
+##   broker.id=-1
+##   listeners=PLAINTEXT://:9092
+##   advertised.listeners=PLAINTEXT://KAFKA_IP:9092
+##   num.network.threads=3
+##   num.io.threads=8
+##   socket.send.buffer.bytes=102400
+##   socket.receive.buffer.bytes=102400
+##   socket.request.max.bytes=104857600
+##   log.dirs=/bitnami/kafka/data
+##   num.partitions=1
+##   num.recovery.threads.per.data.dir=1
+##   offsets.topic.replication.factor=1
+##   transaction.state.log.replication.factor=1
+##   transaction.state.log.min.isr=1
+##   log.flush.interval.messages=10000
+##   log.flush.interval.ms=1000
+##   log.retention.hours=168
+##   log.retention.bytes=1073741824
+##   log.segment.bytes=1073741824
+##   log.retention.check.interval.ms=300000
+##   zookeeper.connect=ZOOKEEPER_SERVICE_NAME
+##   zookeeper.connection.timeout.ms=6000
+##   group.initial.rebalance.delay.ms=0
+
+## Switch to enable topic deletion or not.
+##
+deleteTopicEnable: true
+
+## Switch to enable auto creation of topics.
+## Enabling auto creation of topics not recommended for production or similar environments.
+##
+autoCreateTopicsEnable: true
+
+## The largest record batch size allowed by Kafka
+##
+maxMessageBytes: _1000012
+
+## Default replication factors for automatically created topics
+##
+defaultReplicationFactor: 1
+
+## The replication factor for the offsets topic
+##
+offsetsTopicReplicationFactor: 1
+
+## The replication factor for the transaction topic
+##
+transactionStateLogReplicationFactor: 1
+
+## Overridden min.insync.replicas config for the transaction topic
+##
+transactionStateLogMinIsr: 1
+
+## The number of threads doing disk I/O.
+##
+numIoThreads: 8
+
+## The number of threads handling network requests.
+##
+numNetworkThreads: 3
+
+## The default number of log partitions per topic.
+##
+numPartitions: 1
+
+## The number of threads per data directory to be used for log recovery at startup and flushing at shutdown.
+##
+numRecoveryThreadsPerDataDir: 1
+
+## Timeout in ms for connecting to zookeeper.
+##
+zookeeperConnectionTimeoutMs: 6000
+
+## All the parameters from the configuration file can be overwritten by using environment variables with this format: KAFKA_CFG_{KEY}
+## ref: https://github.com/bitnami/bitnami-docker-kafka#configuration
+## Example:
+## extraEnvVars:
+##   - name: KAFKA_CFG_BACKGROUND_THREADS
+##     value: "10"
+##
+extraEnvVars: []
+
+## Authentication parameteres
+## https://github.com/bitnami/bitnami-docker-kafka#security
+##
+auth:
+  ## Authentication protocol for client and inter-broker communications
+  ## Supported values: 'plaintext', 'tls', 'mtls', 'sasl' and 'sasl_tls'
+  ## This table shows the security provided on each protocol:
+  ## | Method    | Authentication                | Encryption via TLS |
+  ## | plaintext | None                          | No                 |
+  ## | tls       | None                          | Yes                |
+  ## | mtls      | Yes (two-way authentication)  | Yes                |
+  ## | sasl      | Yes (via SASL)                | No                 |
+  ## | sasl_tls  | Yes (via SASL)                | Yes                |
+  ##
+  clientProtocol: plaintext
+  interBrokerProtocol: plaintext
+
+## The address(es) the socket server listens on.
+## When it's set to an empty array, the listeners will be configured
+## based on the authentication protocols (auth.clientProtocol and auth.interBrokerProtocol parameters)
+##
+#listeners: ["INTERNAL://:9093", "CLIENT://:9092", "EXTERNAL://:9094"]
+
+## The address(es) (hostname:port) the brokers will advertise to producers and consumers.
+## When it's set to an empty array, the advertised listeners will be configured
+## based on the authentication protocols (auth.clientProtocol and auth.interBrokerProtocol parameters)
+##
+#advertisedListeners:
+#  [
+#    "INTERNAL://$(MY_POD_NAME).kafka-headless.kafka.svc.cluster.local:9093",
+#    "CLIENT://$(MY_POD_NAME).kafka-headless.kafka.svc.cluster.local:9092",
+#    "EXTERNAL://127.0.0.1:9094",
+#  ]
+
+## The listener->protocol mapping
+## When it's nil, the listeners will be configured
+## based on the authentication protocols (auth.clientProtocol and auth.interBrokerProtocol parameters)
+##
+#listenerSecurityProtocolMap: "INTERNAL:PLAINTEXT,CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT"
+
+## Allow to use the PLAINTEXT listener.
+##
+allowPlaintextListener: true
+
+## Name of listener used for communication between brokers.
+##
+interBrokerListenerName: INTERNAL
+
+## Number of Kafka brokers to deploy
+##
+replicaCount: 1
+
+## Minimal broker.id value
+## Brokers increment their ID starting at this minimal value.
+## E.g., with `minBrokerId=100` and 3 nodes, IDs will be 100, 101, 102 for brokers 0, 1, and 2, respectively.
+##
+minBrokerId: 0
+
+## Kafka containers' resource requests and limits
+## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+##
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+
+## Kafka containers' liveness and readiness probes. Evaluated as a template.
+## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
+##
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  timeoutSeconds: 5
+  # failureThreshold: 3
+  # periodSeconds: 10
+  # successThreshold: 1
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  failureThreshold: 6
+  timeoutSeconds: 5
+  # periodSeconds: 10
+  # successThreshold: 1
+
+## Service parameters
+##
+service:
+  ## Service type
+  ##
+  type: ClusterIP
+  ## Kafka port for client connections
+  ##
+  port: 9092
+  ## Kafka port for inter-broker connections
+  ##
+  internalPort: 9093
+  ## Kafka port for external connections
+  ##
+  externalPort: 9094
+
+## External Access to Kafka brokers configuration
+##
+externalAccess:
+  ## Enable Kubernetes external cluster access to Kafka brokers
+  ##
+  enabled: true
+
+  ## Parameters to configure K8s service(s) used to externally access Kafka brokers
+  ## A new service per broker will be created
+  ##
+  service:
+    ## Service type. Allowed values: LoadBalancer or NodePort
+    ##
+    type: LoadBalancer
+    ## Port used when service type is LoadBalancer
+    ##
+    port: 9094
+    loadBalancerIPs:
+      - 127.0.0.1
+
+## Persistence parameters
+##
+persistence:
+  enabled: false
+
+## Log Persistence parameters
+##
+logPersistence:
+  enabled: false
+
+## Kafka pods ServiceAccount
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+##
+serviceAccount:
+  ## Specifies whether a ServiceAccount should be created
+  ##
+  create: true
+  ## The name of the ServiceAccount to use.
+  ## If not set and create is true, a name is generated using the kafka.serviceAccountName template
+  ##
+  # name:
+  # Allows auto mount of ServiceAccountToken on the serviceAccount created
+  # Can be set to false if pods using this serviceAccount do not need to use K8s API
+  automountServiceAccountToken: true
+
+##
+## Zookeeper chart configuration
+##
+## https://github.com/bitnami/charts/blob/master/bitnami/zookeeper/values.yaml
+##
+zookeeper:
+  enabled: true
+  auth:
+    ## Enable Zookeeper auth
+    ##
+    enabled: false
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 256Mi
+      cpu: 250m

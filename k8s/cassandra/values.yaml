@@ -1,0 +1,104 @@
+image:
+  repository: bitnami/cassandra
+  tag: 3.11.10-debian-10-r78
+
+## Cassandra container ports to open
+## If hostNetwork true: the hostPort is set identical to the containerPort
+##
+containerPorts:
+  intra: 7000
+  tls: 7001
+  jmx: 7199
+  cql: 9042
+  thrift: 9160
+
+## Service parameters
+##
+service:
+  ## Service type
+  ##
+  type: ClusterIP
+  ## CQL port
+  ##
+  port: 9042
+  ## Thrift Client API port
+  ##
+  thriftPort: 9160
+  ## Metrics port
+  ##
+  metricsPort: 8080
+
+## Enable persistence using Persistent Volume Claims
+## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
+##
+persistence:
+  ## If true, use a Persistent Volume Claim, If false, use emptyDir
+  ##
+  enabled: false
+
+## Secret with keystore, keystore password, truststore, truststore password
+##
+# tlsEncryptionSecretName:
+
+## ConfigMap with custom cassandra configuration files. This overrides any other Cassandra configuration set in the chart
+##
+# existingConfiguration:
+
+## Cluster parameters
+##
+cluster:
+  name: cassandra
+  seedCount: 1
+  numTokens: 256
+  datacenter: dc1
+  rack: rack1
+  enableRPC: true
+  endpointSnitch: SimpleSnitch
+  ## Encryption values. NOTE: They require tlsEncryptionSecretName
+  ##
+  internodeEncryption: none
+  clientEncryption: false
+  ## extraSeeds - For an external/second cassandra ring. Seed list will be appended by this.
+  ##
+  # extraSeeds:
+  #   - hostname/IP
+  #   - hostname/IP
+
+## Database credentials
+##
+dbUser:
+  user: cassandra
+  forcePassword: true
+  password: cassandra
+
+## ConfigMap with cql scripts. Useful for creating a keyspace
+## and pre-populating data
+##
+# initDBConfigMap:
+
+## Secret with cql script (with sensitive data). Useful for creating a keyspace
+## and pre-populating data
+##
+# initDBSecret:
+
+## Number of Cassandra replicas to deploy.
+##
+replicaCount: 1
+
+## Cassandra pods' resource requests and limits
+## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+## Minimum memory for development is 4GB and 2 CPU cores
+## Minimum memory for production is 8GB and 4 CPU cores
+## ref: http://docs.datastax.com/en/archived/cassandra/2.0/cassandra/architecture/architecturePlanningHardware_c.html
+##
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+     cpu: 1
+     memory: 2Gi
+  requests:
+     cpu: 1
+     memory: 2Gi

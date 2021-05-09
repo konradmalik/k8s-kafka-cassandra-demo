@@ -1,7 +1,3 @@
-# TODO
-
-- cassandra with table and consumer that can write consumed messages into it
-
 # Demo showing Kafka & Cassandra on Kubernetes via k3d
 
 ## Run cluster
@@ -11,14 +7,17 @@
 $ make k3d-create
 # start kafka + kafka ui
 $ make kafka-create
+# start cassandra
+$ make cassandra-create
 ```
 
 To clean up after the demo/testing/dev just run:
+
 ```bash
 $ make k3d-delete
 ```
 
-## Access Kafka
+## Access
 
 Enable port forwarding to `kafka-0-external` service in order to send/consume messages from local machine:
 
@@ -36,11 +35,23 @@ $ make kafka-ui-port-forward
 
 The dashboard is then accesible on `localhost:8080`.
 
-## Producer-consumer demo
+Cassandra is available on `127.0.0.1:9042` after port forward:
 
-Scripts for run producers and consumers are in `./apps/kafka`.
+```bash
+$ make cassandra-port-forward
+```
 
-### Prepare env
+In order to access CQLSH (may take a while):
+
+```bash
+$ make cassandra-cqlsh
+```
+
+# Demo
+
+Scripts for demo apps are in `./apps`.
+
+## Prepare env
 
 Install dependencies and activate virtual-env:
 
@@ -51,6 +62,8 @@ $ make venv
 $ source venv/bin/activate
 ```
 
+## Producer-consumer demo
+
 ### Proposed demo scenario
 
 _Run commands in different terminals to see live logs_
@@ -59,7 +72,7 @@ Create topic using admin api.
 By default create just 1 partition:
 
 ```bash
-$ TOPICS=temperature python admin.py
+$ TOPIC=temperature python admin.py
 ```
 
 Run first producer:
@@ -103,7 +116,7 @@ To investigate the importance of partitions, recreate topic using admin api but 
 (may need to be run twice due to async nature of topic deletion/creation).
 
 ```bash
-$ TOPICS=temperature PARTITIONS=2 python admin.py
+$ TOPIC=temperature PARTITIONS=2 python admin.py
 ```
 
 Recreate the same producers and consumers (use the same group here):
@@ -138,7 +151,7 @@ And now observe how round-robin assignment of partitions influences producers an
 
 What more? Kill one (or both) of the consumers and observe what happens, which messages get consumed where, when etc.
 
-## Delivery semantics
+### Delivery semantics
 
 See `consumer.py` source code. What is defined there is a default configuration that includes `earliest` unread message and `auto commit` is enabled.
 
@@ -153,3 +166,71 @@ in Redis or on each restart seek to the last message that is written into the da
 Kafka architecture forces "dumb" broker and "smart" clients (consumers mainly) and this shows here.
 
 Those configurations/scenarios are beyond this small demo.
+
+## Cassandra demo
+
+### Proposed demo scenario
+
+_Run commands in different terminals to see live logs_
+
+Create 2 topics with 1 partition each using admin api.
+
+```bash
+$ TOPIC=temperature python admin.py
+$ TOPIC=pressure python admin.py
+```
+
+Run producers:
+
+```bash
+$ TOPIC=temperature KEY=station-01 SENSOR=temperature-01 python producer.py
+$ TOPIC=pressure KEY=station-01 SENSOR=pressure-01 python producer.py
+```
+
+Run cassandra consumer:
+_Note that initialization can take a while because we are running Cassandra below recommended cpu and ram here!_
+
+```bash
+$ TOPICS=temperature,pressure GROUP=raw-measurements python kassandra.py
+```
+
+This consumes messages from both topics and dumps the consumed data into Cassandra.
+
+Notice the handy Kafka Group -> Cassandra keyspace and topic mapping
+(`raw` and `measurements`, see `cassandra.py` code) as it allows for
+easy scaling (**while remembering about partitions and parallel consuming from previous demo! it applies here**).
+
+Another parallelization is to consume each topic independently:
+
+```bash
+$ TOPICS=pressure GROUP=raw-measurements python kassandra.py
+$ TOPICS=temperature GROUP=raw-measurements python kassandra.py
+```
+
+Feel free to use `cqlsh` and investigate created table and data:
+
+```bash
+$ make cassandra-cqlsh
+```
+
+Exemplary query (adjust date!):
+
+```sql
+SELECT * FROM raw.measurements where name in ('temperature-01', 'pressure-01') and timestamp < '2021-05-09 14:00:00' LIMIT 4;
+```
+
+Values are nicely sorted from newest to oldest.
+
+Notice that due to `name` as primary key, we always need to specify its value! Querying all sensors can be inefficient.
+
+We can force that by adding `ALLOW FILTERING`, for example:
+
+```sql
+SELECT * FROM raw.measurements where timestamp < '2021-05-09 14:00:00' LIMIT 4 ALLOW FILTERING;
+```
+
+But what is does is FIRST loads all data and only THEN filters it to conform to `where` clause.
+
+That is one of the reasons why tables in Cassandra need to be defined based on use cases and why data duplication (multiple tables with slightly different schemas and pretty much the same data) are so common.
+
+One can also add additional indexes. If we saved something like "station_name" of the measurement we could add additional index on it and be able to query it efficiently using `where`, but this is beyond the scope of this simple demo.

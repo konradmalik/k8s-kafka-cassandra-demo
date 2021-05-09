@@ -64,7 +64,7 @@ if __name__ == "__main__":
         # been successfully delivered or failed permanently.
         value = generate_data_json().encode()
         key = KEY if KEY.strip() != "" else None
-        print("Producing message: KEY: {} | VALUE: {}".format(key, value))
+        print("Producing message: KEY: {!r} | VALUE: {!r}".format(key, value))
         p.produce(TOPIC, value, key, callback=delivery_report)
         # wait specified interval
         time.sleep(INTERVAL)
